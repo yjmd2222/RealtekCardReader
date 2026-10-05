@@ -2902,6 +2902,59 @@ bool RealtekPCICardReaderController::setupCardInitTimer()
 }
 
 ///
+/// Create the timer that removes `IOPCIEjectable` from the device
+///
+/// @return `true` on success, `false` otherwise.
+///
+bool RealtekPCICardReaderController::setupHideEjectableTimer()
+{
+    auto handler = OSMemberFunctionCast(IOTimerEventSource::Action, this, &RealtekPCICardReaderController::hideEjectable);
+    
+    this->hideEjectableTimer = IOTimerEventSource::timerEventSource(this, handler);
+    
+    if (this->hideEjectableTimer == nullptr)
+    {
+        perr("Failed to create the timer that hides the ejectable flag.");
+        
+        return false;
+    }
+    
+    if (this->workLoop->addEventSource(this->hideEjectableTimer) != kIOReturnSuccess)
+    {
+        perr("Failed to add the timer that hides the ejectable flag to the workloop.");
+        
+        OSSafeReleaseNULL(this->hideEjectableTimer);
+        
+        return false;
+    }
+    
+    return true;
+}
+
+///
+/// Remove `IOPCIEjectable` from the card reader PCI device
+///
+/// @param sender The timer event source that sends the event.
+///
+void RealtekPCICardReaderController::hideEjectable(IOTimerEventSource* sender)
+{
+    if (this->device == nullptr)
+    {
+        return;
+    }
+    
+    bool had = this->device->getProperty("IOPCIEjectable") != nullptr;
+    
+    pmesg("Hide ejectable: IOPCIEjectable = %s before removal.", YESNO(had));
+    
+    this->device->removeProperty("IOPCIEjectable");
+    
+    this->device->setProperty("RTSXHideEjectable", had ? "removed IOPCIEjectable after the controller started" : "IOPCIEjectable was not set");
+    
+    pmesg("Hide ejectable: IOPCIEjectable = %s after removal.", YESNO(this->device->getProperty("IOPCIEjectable") != nullptr));
+}
+
+///
 /// Setup the card if it is present when the driver starts
 ///
 /// @param sender The timer event source that sends the event.
@@ -3019,6 +3072,23 @@ void RealtekPCICardReaderController::destroyCardInitTimer()
     }
 }
 
+///
+/// Destory the timer that removes `IOPCIEjectable` from the device
+///
+void RealtekPCICardReaderController::destroyHideEjectableTimer()
+{
+    if (this->hideEjectableTimer != nullptr)
+    {
+        this->hideEjectableTimer->cancelTimeout();
+        
+        this->workLoop->removeEventSource(this->hideEjectableTimer);
+        
+        this->hideEjectableTimer->release();
+        
+        this->hideEjectableTimer = nullptr;
+    }
+}
+
 //
 // MARK: - IOService Implementations
 //
@@ -3047,6 +3117,8 @@ bool RealtekPCICardReaderController::init(OSDictionary* dictionary)
     this->interruptEventSource = nullptr;
     
     this->cardSetupTimer = nullptr;
+    
+    this->hideEjectableTimer = nullptr;
     
     this->dmaCommandPool = nullptr;
     
@@ -3193,6 +3265,14 @@ bool RealtekPCICardReaderController::start(IOService* provider)
     
     this->registerService();
     
+    // Remove `IOPCIEjectable` once the driver has started (never before)
+    if (UserConfigs::PCR::DelayHideEjectable != 0 && this->setupHideEjectableTimer())
+    {
+        pmesg("Hide ejectable: will remove IOPCIEjectable %u ms from now.", UserConfigs::PCR::DelayHideEjectable);
+        
+        this->hideEjectableTimer->setTimeoutMS(UserConfigs::PCR::DelayHideEjectable);
+    }
+    
     pinfo("ASPM Enabled: %s.", YESNO(this->isASPMEnabled()));
     
     pinfo("================================================");
@@ -3232,6 +3312,8 @@ error1:
 void RealtekPCICardReaderController::stop(IOService* provider)
 {
     pinfo("Stopping the card reader controller...");
+    
+    this->destroyHideEjectableTimer();
     
     this->destroyCardInitTimer();
     

@@ -24,6 +24,11 @@ namespace UserConfigs::PCR
     /// The amount of time in milliseconds to delay the card initialization
     /// if the card is present when the driver starts
     extern UInt32 DelayCardInitAtBoot;
+    
+    /// The amount of time in milliseconds after the controller starts to remove `IOPCIEjectable`
+    /// from the card reader PCI device, so that macOS does not show it as an ExpressCard
+    /// (menu-bar item and System Information). Zero disables the feature.
+    extern UInt32 DelayHideEjectable;
 }
 
 /// Boot arguments that customize the USB-based card reader controller

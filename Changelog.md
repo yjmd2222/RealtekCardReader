@@ -1,5 +1,8 @@
 #  Changelog
 
+#### v0.9.8 Beta (fork)
+- Added the `rtsxhide` boot argument (default 10000 ms, `0` disables). After the PCIe controller has started, the driver removes `IOPCIEjectable` from the card reader PCI device so that macOS does not treat a built-in reader behind a hot-plug root port as an ExpressCard (menu-bar item and System Information entry). The property is never removed before the driver has started.
+
 #### v0.9.7 Beta
 - ~~Fixed an issue that the card is not mounted after the computer wakes up when sleeps with the card inserted.~~
 - Fixed a race condition that may resume the polling thread even though the client requests to pause it.

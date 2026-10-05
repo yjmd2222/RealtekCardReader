@@ -50,6 +50,12 @@ For example, if the name is `rtsxabcd` and the value is `10`, `<Name>=<Value>` b
     - Default Value: `100`
     - Minimum Value: `0`
     - Description: Specify the amount of time in milliseconds to delay the card initialization if the card is present when the driver starts. Increase the delay if your card cannot be initialized when the system boots.
+- DelayHideEjectable
+    - Boot Argument: `rtsxhide`
+    - Value Type: `UInt32`
+    - Default Value: `10000`
+    - Minimum Value: `0`
+    - Description: Specify the amount of time in milliseconds after the controller starts to remove the `IOPCIEjectable` property from the card reader PCI device. IOPCIFamily sets this property when the card reader sits behind a root port that reports PCIe hot-plug (for example some HP laptops), and macOS then treats the built-in reader as an ExpressCard: a menu-bar item ("Unknown Card Type" / "Power off Card") and an "ExpressCard" entry in System Information. The property is only removed after the driver has started. Set `0` to disable the feature and leave the property untouched.
 
 ### USB-based Card Reader Specific
 - DeviceStatusPollingInterval

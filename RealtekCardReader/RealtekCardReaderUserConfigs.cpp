@@ -22,6 +22,10 @@ namespace UserConfigs::PCR
     /// The amount of time in milliseconds to delay the card initialization
     /// if the card is present when the driver starts
     UInt32 DelayCardInitAtBoot = BootArgs::get("rtsxdcib", 100);
+    
+    /// The amount of time in milliseconds after the controller starts to remove `IOPCIEjectable`
+    /// from the card reader PCI device. Zero disables the feature.
+    UInt32 DelayHideEjectable = BootArgs::get("rtsxhide", 10000);
 }
 
 /// Boot arguments that customize the USB-based card reader controller

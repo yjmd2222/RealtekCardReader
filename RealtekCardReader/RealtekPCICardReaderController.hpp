@@ -394,6 +394,9 @@ class RealtekPCICardReaderController: public RealtekCardReaderController
     /// A timer that delays the initialization of the card
     IOTimerEventSource* cardSetupTimer;
     
+    /// A timer that removes `IOPCIEjectable` from the device after the controller has started
+    IOTimerEventSource* hideEjectableTimer;
+    
     //
     // MARK: - Host Command & Data Buffer
     //
@@ -1862,6 +1865,23 @@ private:
     ///
     void setupCardIfPresentGated(IOTimerEventSource* sender);
     
+    ///
+    /// Create the timer that removes `IOPCIEjectable` from the device
+    ///
+    /// @return `true` on success, `false` otherwise.
+    ///
+    bool setupHideEjectableTimer();
+    
+    ///
+    /// Remove `IOPCIEjectable` from the card reader PCI device
+    ///
+    /// @param sender The timer event source that sends the event.
+    /// @note IOPCIFamily sets this property when it publishes the device because the root port reports PCIe hot-plug.
+    ///       It makes macOS treat the built-in card reader as an ExpressCard. The property is removed only
+    ///       after this driver has started, never before.
+    ///
+    void hideEjectable(IOTimerEventSource* sender);
+    
     //
     // MARK: - Teardown Routines
     //
@@ -1886,6 +1906,11 @@ private:
     /// Destory the timer that delays the initialization of a card
     ///
     void destroyCardInitTimer();
+    
+    ///
+    /// Destory the timer that removes `IOPCIEjectable` from the device
+    ///
+    void destroyHideEjectableTimer();
     
     //
     // MARK: - IOService Implementations
